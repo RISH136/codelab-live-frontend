@@ -204,13 +204,20 @@ const Project = () => {
 
                     console.log(message)
 
-                    webContainer?.mount(message.fileTree)
-
-                    if (message.fileTree) {
-                        setFileTree(message.fileTree || {})
+                    // Only mount and set fileTree if present (code mode)
+                    if (message && message.fileTree) {
+                        webContainer?.mount(message.fileTree)
+                        if (message.fileTree) {
+                            setFileTree(message.fileTree || {})
+                        }
+                        // Keep rich AI object when it contains fileTree
+                        setMessages(prevMessages => [ ...prevMessages, { ...data, message: message } ])
+                        return
                     }
-                    // Pass the parsed message object instead of raw data
-                    setMessages(prevMessages => [ ...prevMessages, { ...data, message: message } ]) // Update messages state
+
+                    // Chat mode: render as plain text bubble
+                    const chatText = typeof data.message === 'string' ? data.message : (message?.text ?? JSON.stringify(message))
+                    setMessages(prevMessages => [ ...prevMessages, { ...data, message: chatText } ])
                 } catch (error) {
                     console.error('Error parsing AI message:', error)
                     console.error('Raw message:', data.message)
@@ -218,24 +225,19 @@ const Project = () => {
                     // Try to extract just the text content as a fallback
                     try {
                         const fallbackText = data.message.match(/"text":\s*"([^"]+)"/)?.[1] || 
-                                           data.message.match(/"text":\s*"([^"]*(?:\\.[^"]*)*)"/)?.[1] ||
-                                           "Unable to parse AI response"
+                                           data.message.match(/"text":\s*"([^\"]*(?:\\.[^\"]*)*)"/)?.[1] ||
+                                           (typeof data.message === 'string' ? data.message : 'Unable to parse AI response')
                         
                         setMessages(prevMessages => [ ...prevMessages, { 
                             ...data, 
-                            message: { 
-                                text: fallbackText,
-                                error: true 
-                            } 
+                            message: fallbackText
                         } ])
                     } catch (fallbackError) {
                         // If even the fallback fails, show the raw message
+                        const raw = typeof data.message === 'string' ? data.message : JSON.stringify(data.message)
                         setMessages(prevMessages => [ ...prevMessages, { 
                             ...data, 
-                            message: { 
-                                text: `Error parsing AI response: ${error.message}`,
-                                error: true 
-                            } 
+                            message: raw
                         } ])
                     }
                 }
@@ -338,8 +340,13 @@ const Project = () => {
                             <div key={index} className={`${msg.sender._id === 'ai' ? 'max-w-80' : 'max-w-52'} ${msg.sender._id == user?._id?.toString() && 'ml-auto'}  message flex flex-col p-4 bg-gradient-to-br from-gray-700 to-gray-800 w-fit rounded-xl shadow-lg border border-gray-600`}>
                                 <small className='opacity-70 text-xs text-gray-300 mb-1'>{msg.sender.email}</small>
                                 <div className='text-sm text-gray-100'>
-                                    {msg.sender._id === 'ai' ?
-                                        WriteAiMessage(msg.message)
+                                    {msg.sender._id === 'ai'
+                                        ? (
+                                            // If AI provided a fileTree (code mode), use rich AI rendering; otherwise render like a normal message
+                                            msg?.message?.fileTree
+                                                ? WriteAiMessage(msg.message)
+                                                : <p className="leading-relaxed">{typeof msg.message === 'string' ? msg.message : msg?.message?.text}</p>
+                                        )
                                         : <p className="leading-relaxed">{msg.message}</p>}
                                 </div>
                             </div>
