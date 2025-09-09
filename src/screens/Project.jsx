@@ -4,7 +4,13 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import axios from '../config/axios'
 import { initializeSocket, receiveMessage, sendMessage, offMessage } from '../config/socket'
 import Markdown from 'markdown-to-jsx'
-import hljs from 'highlight.js';
+import hljs from 'highlight.js/lib/core'
+import javascript from 'highlight.js/lib/languages/javascript'
+hljs.registerLanguage('javascript', javascript)
+if (typeof window !== 'undefined') {
+    // Expose for any runtime highlighters relying on window.hljs
+    window.hljs = hljs
+}
 import { getWebContainer } from '../config/webContainer'
 
 
@@ -12,8 +18,8 @@ function SyntaxHighlightedCode(props) {
     const ref = useRef(null)
 
     React.useEffect(() => {
-        if (ref.current && props.className?.includes('lang-') && window.hljs) {
-            window.hljs.highlightElement(ref.current)
+        if (ref.current && props.className?.includes('lang-')) {
+            hljs.highlightElement(ref.current)
 
             // hljs won't reprocess the element unless this attribute is removed
             ref.current.removeAttribute('data-highlighted')
@@ -642,7 +648,7 @@ const Project = () => {
                                                 setFileTree(ft)
                                                 saveFileTree(ft)
                                             }}
-                                            dangerouslySetInnerHTML={{ __html: hljs.highlight('javascript', fileTree[ currentFile ]?.file?.contents || '').value }}
+                                            dangerouslySetInnerHTML={{ __html: hljs.highlight(fileTree[ currentFile ]?.file?.contents || '', { language: 'javascript' }).value }}
                                             style={{
                                                 whiteSpace: 'pre-wrap',
                                                 paddingBottom: '25rem',
