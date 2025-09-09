@@ -206,17 +206,23 @@ const Project = () => {
 
                     // Only mount and set fileTree if present (code mode)
                     if (message && message.fileTree) {
-                        webContainer?.mount(message.fileTree)
-                        if (message.fileTree) {
-                            setFileTree(message.fileTree || {})
-                        }
+                        // Merge using functional update to avoid stale state and persist immediately
+                        setFileTree(prevFileTree => {
+                            const mergedFileTree = { ...prevFileTree, ...message.fileTree }
+                            console.log('Previous fileTree:', prevFileTree)
+                            console.log('New fileTree from AI:', message.fileTree)
+                            console.log('Merged fileTree:', mergedFileTree)
+                            webContainer?.mount(mergedFileTree)
+                            saveFileTree(mergedFileTree)
+                            return mergedFileTree
+                        })
                         // Keep rich AI object when it contains fileTree
-                        setMessages(prevMessages => [ ...prevMessages, { ...data, message: message } ])
+                        setMessages(prevMessages => [ ...prevMessages, { ...data, message } ])
                         return
                     }
 
                     // Chat mode: render as plain text bubble
-                    const chatText = typeof data.message === 'string' ? data.message : (message?.text ?? JSON.stringify(message))
+                    const chatText = message?.text || (typeof data.message === 'string' ? data.message : 'AI response')
                     setMessages(prevMessages => [ ...prevMessages, { ...data, message: chatText } ])
                 } catch (error) {
                     console.error('Error parsing AI message:', error)
@@ -300,6 +306,15 @@ const Project = () => {
             scrollToBottom()
         })
     }, [ messages ])
+
+    // Debug fileTree changes
+    useEffect(() => {
+        console.log('FileTree updated:', fileTree)
+        console.log('Current file:', currentFile)
+        if (currentFile && fileTree[currentFile]) {
+            console.log('Current file content:', fileTree[currentFile])
+        }
+    }, [fileTree, currentFile])
 
     
 
@@ -405,6 +420,9 @@ const Project = () => {
                                 <button
                                     key={index}
                                     onClick={() => {
+                                        console.log('Clicked file:', file)
+                                        console.log('Current fileTree:', fileTree)
+                                        console.log('File data:', fileTree[file])
                                         setCurrentFile(file)
                                         setOpenFiles([ ...new Set([ ...openFiles, file ]) ])
                                     }}
@@ -624,7 +642,7 @@ const Project = () => {
                                                 setFileTree(ft)
                                                 saveFileTree(ft)
                                             }}
-                                            dangerouslySetInnerHTML={{ __html: hljs.highlight('javascript', fileTree[ currentFile ].file.contents).value }}
+                                            dangerouslySetInnerHTML={{ __html: hljs.highlight('javascript', fileTree[ currentFile ]?.file?.contents || '').value }}
                                             style={{
                                                 whiteSpace: 'pre-wrap',
                                                 paddingBottom: '25rem',

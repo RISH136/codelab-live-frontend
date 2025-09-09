@@ -21,6 +21,16 @@ const Home = () => {
         })
             .then((res) => {
                 console.log(res)
+                const created = res?.data?.project || res?.data?.data || res?.data?.newProject
+                if (created) {
+                    setProject(prev => [created, ...prev])
+                } else {
+                    // Fallback: refetch projects if API doesn't return created project
+                    axios.get('/projects/all').then((r) => {
+                        setProject(r.data.projects)
+                    }).catch((err) => console.log(err))
+                }
+                setProjectName(null)
                 setIsModalOpen(false)
             })
             .catch((error) => {
@@ -70,7 +80,7 @@ const Home = () => {
                     <span className="font-medium">Logout</span>
                 </button>
             </div>
-            
+
             <div className="projects flex flex-wrap gap-6">
                 <button
                     onClick={() => setIsModalOpen(true)}
@@ -134,22 +144,22 @@ const Home = () => {
                                 <input
                                     onChange={(e) => setProjectName(e.target.value)}
                                     value={projectName}
-                                    type="text" 
-                                    className="w-full p-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
+                                    type="text"
+                                    className="w-full p-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                                     placeholder="Enter project name..."
-                                    required 
+                                    required
                                 />
                             </div>
                             <div className="flex justify-end gap-3">
-                                <button 
-                                    type="button" 
-                                    className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg font-medium transition-all duration-200 border border-gray-600" 
+                                <button
+                                    type="button"
+                                    className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg font-medium transition-all duration-200 border border-gray-600"
                                     onClick={() => setIsModalOpen(false)}
                                 >
                                     Cancel
                                 </button>
-                                <button 
-                                    type="submit" 
+                                <button
+                                    type="submit"
                                     className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-medium transition-all duration-200 shadow-lg transform hover:scale-105"
                                 >
                                     Create Project
